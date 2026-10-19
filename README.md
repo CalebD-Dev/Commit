@@ -8,9 +8,12 @@ Commit is a calm, local-first to-do app for making steady progress. It runs in y
 Commit/
 ├── index.html
 ├── README.md
-└── src/
-    ├── app.js
-    └── styles.css
+├── src/
+│   ├── app.js
+│   └── styles.css
+└── tests/
+    ├── index.html
+    └── tests.js
 ```
 
 ## Run it locally
@@ -23,13 +26,18 @@ You can also serve the folder with any static file server, such as the VS Code L
 ## Features
 
 - Create tasks with a project, priority, and optional due date.
-- Mark tasks complete, restore them, or delete them.
-- Browse your inbox, today's tasks, upcoming tasks, completed tasks, or an individual project.
+- Edit tasks, mark them complete, restore them, or undo an accidental deletion.
+- Start with Today, or browse this week (Monday through Sunday), this month, upcoming tasks, completed tasks, or a project.
+- Tasks without a due date remain visible in Today, This week, and This month.
 - Search task titles and sort by due date, priority, or date added.
 - Track today's completion progress and completed-task count.
 - Use `N` to add a task and `/` to focus search.
 - Responsive layout, keyboard-friendly controls, and reduced-motion support.
 - Tasks stay in this browser on this device using `localStorage`; nothing is sent to a server.
+
+## Run the browser tests
+
+Start the project with a local static server (for example, VS Code Live Server), then open `tests/index.html`. The test page exercises the app in an isolated frame and restores the browser's existing task data when finished. The same page is available under the `tests/` path of the GitHub Pages project URL.
 
 ## Data and privacy
 

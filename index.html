@@ -7,7 +7,7 @@
       name="description"
       content="Commit is a calm, local-first task manager that helps you make progress one task at a time."
     />
-    <meta name="theme-color" content="#f7f8f6" />
+    <meta name="theme-color" content="#f1f3f0" />
     <title>Commit — Make room for what matters</title>
     <link rel="stylesheet" href="src/styles.css" />
     <script src="src/app.js" defer></script>
@@ -15,7 +15,7 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Main navigation">
-        <a class="brand" href="#" aria-label="Commit home" data-view-link="inbox">
+        <a class="brand" href="#" aria-label="Commit home" data-home-link>
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" fill="none">
               <path d="M16 3.5 27 9.75v12.5L16 28.5 5 22.25V9.75L16 3.5Z" />
@@ -33,15 +33,20 @@
 
         <nav class="primary-nav" aria-label="Tasks">
           <p class="nav-label">WORKSPACE</p>
-          <button class="nav-item is-active" type="button" data-view-link="inbox" aria-label="Inbox">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4.5h14v11H3zM3 11h4l1.5 2h3L13 11h4" /></svg>
-            <span>Inbox</span>
-            <span class="nav-count" data-count="inbox">0</span>
-          </button>
-          <button class="nav-item" type="button" data-view-link="today" aria-label="Today">
+          <button class="nav-item is-active" type="button" data-view-link="today" aria-label="Today">
             <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M6.5 3v3M13.5 3v3M3 8h14m-9 3 1.5 1.5L13 10" /></svg>
             <span>Today</span>
             <span class="nav-count" data-count="today">0</span>
+          </button>
+          <button class="nav-item" type="button" data-view-link="week" aria-label="This week">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M6.5 3v3M13.5 3v3M3 8h14M7 11h.01M10 11h.01M13 11h.01M7 14h.01M10 14h.01M13 14h.01" /></svg>
+            <span>This week</span>
+            <span class="nav-count" data-count="week">0</span>
+          </button>
+          <button class="nav-item" type="button" data-view-link="month" aria-label="This month">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M6.5 3v3M13.5 3v3M3 8h14M7 11h2v2H7zM11 11h2v2h-2z" /></svg>
+            <span>This month</span>
+            <span class="nav-count" data-count="month">0</span>
           </button>
           <button class="nav-item" type="button" data-view-link="upcoming" aria-label="Upcoming">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.5 15.5 4M6 4h9.5v9.5" /><path d="M3.5 5.5v11h11" /></svg>
@@ -88,7 +93,7 @@
 
       <main class="main-area">
         <header class="topbar">
-          <div class="breadcrumb"><span>My workspace</span><span aria-hidden="true">/</span><strong id="breadcrumb-view">Inbox</strong></div>
+          <div class="breadcrumb"><span>My workspace</span><span aria-hidden="true">/</span><strong id="breadcrumb-view">Today</strong></div>
           <div class="topbar-actions">
             <label class="search-box">
               <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8" /><path d="m13.2 13.2 4 4" /></svg>
@@ -105,8 +110,8 @@
           <section class="welcome-row" aria-labelledby="page-title">
             <div>
               <p class="eyebrow" id="current-date"></p>
-              <h1 id="page-title">Inbox</h1>
-              <p class="page-subtitle" id="page-subtitle">A little progress goes a long way.</p>
+              <h1 id="page-title">Today</h1>
+              <p class="page-subtitle" id="page-subtitle">One thing at a time. You've got this.</p>
             </div>
             <div class="streak-chip"><span class="sparkle" aria-hidden="true">✳</span><span><strong id="completed-today">0</strong> completed today</span></div>
           </section>
@@ -116,7 +121,7 @@
               <div class="list-toolbar">
                 <div class="list-heading">
                   <span class="list-indicator" aria-hidden="true"></span>
-                  <h2 id="list-title">All tasks</h2>
+                  <h2 id="list-title">Today's tasks</h2>
                   <span class="task-total" id="task-total">0</span>
                 </div>
                 <label class="sort-select">
@@ -138,7 +143,7 @@
                 <div class="focus-card-top"><span class="card-kicker">YOUR FOCUS</span><span class="focus-orb" aria-hidden="true">✳</span></div>
                 <h2>Small steps.<br />Real momentum.</h2>
                 <p>Every task you finish is a promise you kept to yourself.</p>
-                <div class="progress-meta"><span>Today's progress</span><strong id="progress-label">0%</strong></div>
+                <div class="progress-meta"><span id="progress-title">Today's progress</span><strong id="progress-label">0%</strong></div>
                 <div class="progress-track" role="progressbar" aria-label="Today's task completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-fill"></span></div>
                 <div class="progress-foot"><span id="progress-count">0 of 0 tasks</span><span>Keep it up</span></div>
               </section>
@@ -157,7 +162,7 @@
     <dialog class="task-dialog" id="task-dialog" aria-labelledby="dialog-title">
       <form id="task-form">
         <div class="dialog-header">
-          <div><p class="eyebrow">MAKE A LITTLE PROGRESS</p><h2 id="dialog-title">Add a task</h2></div>
+          <div><p class="eyebrow" id="dialog-kicker">MAKE A LITTLE PROGRESS</p><h2 id="dialog-title">Add a task</h2></div>
           <button class="icon-button" type="button" data-close-dialog aria-label="Close">×</button>
         </div>
         <label class="field-label" for="task-title">What needs doing?</label>
@@ -179,10 +184,10 @@
         </label>
         <div class="dialog-actions">
           <button class="cancel-button" type="button" data-close-dialog>Cancel</button>
-          <button class="submit-button" type="submit"><span aria-hidden="true">+</span> Add task</button>
+          <button class="submit-button" type="submit"><span aria-hidden="true">+</span><span id="submit-label">Add task</span></button>
         </div>
       </form>
     </dialog>
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-message"></span><button class="undo-button" id="undo-delete" type="button" hidden>Undo</button></div>
   </body>
 </html>

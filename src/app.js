@@ -7,8 +7,9 @@ const projectClasses = {
   Health: "dot-health",
 };
 const viewDetails = {
-  inbox: { title: "Inbox", list: "All tasks", subtitle: "A little progress goes a long way." },
   today: { title: "Today", list: "Today's tasks", subtitle: "One thing at a time. You've got this." },
+  week: { title: "This week", list: "This week's tasks", subtitle: "Your plans for the week, one day at a time." },
+  month: { title: "This month", list: "This month's tasks", subtitle: "A little progress adds up over the month." },
   upcoming: { title: "Upcoming", list: "Coming up", subtitle: "A clear view of what's ahead." },
   completed: { title: "Completed", list: "You did that", subtitle: "Look at all the progress you've made." },
 };
@@ -18,6 +19,8 @@ const elements = {
   completedToday: document.querySelector("#completed-today"),
   currentDate: document.querySelector("#current-date"),
   dialog: document.querySelector("#task-dialog"),
+  dialogKicker: document.querySelector("#dialog-kicker"),
+  dialogTitle: document.querySelector("#dialog-title"),
   form: document.querySelector("#task-form"),
   listTitle: document.querySelector("#list-title"),
   pageSubtitle: document.querySelector("#page-subtitle"),
@@ -25,20 +28,26 @@ const elements = {
   progressCount: document.querySelector("#progress-count"),
   progressFill: document.querySelector("#progress-fill"),
   progressLabel: document.querySelector("#progress-label"),
+  progressTitle: document.querySelector("#progress-title"),
   progressTrack: document.querySelector(".progress-track"),
   search: document.querySelector("#search-input"),
   sort: document.querySelector("#sort-select"),
+  submitLabel: document.querySelector("#submit-label"),
   storageMessage: document.querySelector("#storage-message"),
   taskList: document.querySelector("#task-list"),
   taskTotal: document.querySelector("#task-total"),
   toast: document.querySelector("#toast"),
+  toastMessage: document.querySelector("#toast-message"),
+  undoDelete: document.querySelector("#undo-delete"),
 };
 
 let tasks = loadTasks();
-let activeView = "inbox";
+let activeView = "today";
 let activeProject = null;
 let searchTerm = "";
 let toastTimer;
+let editTaskId = null;
+let pendingDeletion = null;
 
 function isTask(value) {
   return value &&
@@ -92,6 +101,35 @@ function localDateString(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function getDateRange(view, now = new Date()) {
+  const today = localDateString(now);
+  if (view === "today") return { start: today, end: today };
+
+  if (view === "week") {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return { start: localDateString(start), end: localDateString(end) };
+  }
+
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  return {
+    start: `${year}-${String(month + 1).padStart(2, "0")}-01`,
+    end: localDateString(new Date(year, month + 1, 0)),
+  };
+}
+
+function isInView(task, view, today = localDateString()) {
+  if (view === "completed") return task.completed;
+  if (view === "upcoming") return Boolean(task.dueDate && task.dueDate > today);
+  if (task.completed) return false;
+  if (!task.dueDate) return ["today", "week", "month"].includes(view);
+  const range = getDateRange(view);
+  return Boolean(range && task.dueDate >= range.start && task.dueDate <= range.end);
+}
+
 function formatDate(dateString, options = { month: "short", day: "numeric" }) {
   const [year, month, day] = dateString.split("-").map(Number);
   return new Intl.DateTimeFormat(undefined, options).format(new Date(year, month - 1, day));
@@ -111,11 +149,7 @@ function visibleTasks() {
   const today = localDateString();
   let result = tasks.filter((task) => {
     if (activeProject && task.project !== activeProject) return false;
-    if (activeView === "completed") return task.completed;
-    if (task.completed) return false;
-    if (activeView === "today") return task.dueDate === today;
-    if (activeView === "upcoming") return task.dueDate && task.dueDate > today;
-    return true;
+    return isInView(task, activeView, today);
   });
 
   if (searchTerm) {
@@ -167,7 +201,12 @@ function renderTask(task) {
       </div>
     </div>
     <span class="priority-label priority-${task.priority}">${task.priority}</span>
-    <button class="delete-task" type="button" aria-label="Delete ${safeTitle}" title="Delete task" data-delete-task="${escapeHtml(task.id)}">×</button>
+    <div class="task-actions">
+      <button class="edit-task" type="button" aria-label="Edit ${safeTitle}" title="Edit task" data-edit-task="${escapeHtml(task.id)}">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10.8 3.2 2 2-7.7 7.7-2.7.7.7-2.7 7.7-7.7Z" /><path d="m9.5 4.5 2 2" /></svg>
+      </button>
+      <button class="delete-task" type="button" aria-label="Delete ${safeTitle}" title="Delete task" data-delete-task="${escapeHtml(task.id)}">×</button>
+    </div>
   </article>`;
 }
 
@@ -175,6 +214,8 @@ function emptyMessage() {
   if (searchTerm) return { icon: "⌕", title: "No matches found", text: "Try a different search, or clear your search to see all tasks." };
   if (activeView === "completed") return { icon: "✓", title: "Your next win is waiting", text: "Tasks you complete will find their way here. Start with one small thing." };
   if (activeView === "today") return { icon: "☀", title: "A little breathing room", text: "Nothing due today. Enjoy the space, or add a task when you're ready." };
+  if (activeView === "week") return { icon: "▦", title: "Your week has room to breathe", text: "Tasks due this week and tasks without a due date will show up here." };
+  if (activeView === "month") return { icon: "▦", title: "A fresh month of possibilities", text: "Tasks due this month and tasks without a due date will show up here." };
   if (activeView === "upcoming") return { icon: "↗", title: "Clear skies ahead", text: "Tasks with a future due date will show up here." };
   return { icon: "✳", title: "Make room for what matters", text: "Your list is a fresh start. Add a task and take the first small step." };
 }
@@ -193,23 +234,40 @@ function renderList() {
 function renderCounts() {
   const today = localDateString();
   const incomplete = tasks.filter((task) => !task.completed);
-  document.querySelector('[data-count="inbox"]').textContent = String(incomplete.length);
-  document.querySelector('[data-count="today"]').textContent = String(incomplete.filter((task) => task.dueDate === today).length);
+  ["today", "week", "month"].forEach((view) => {
+    const count = incomplete.filter((task) => isInView(task, view, today)).length;
+    document.querySelector(`[data-count="${view}"]`).textContent = String(count);
+  });
   document.querySelector('[data-count="upcoming"]').textContent = String(incomplete.filter((task) => task.dueDate && task.dueDate > today).length);
   projects.forEach((project) => {
     const count = incomplete.filter((task) => task.project === project).length;
     document.querySelector(`[data-project-count="${project}"]`).textContent = String(count);
   });
 
-  const todaysTasks = tasks.filter((task) => task.dueDate === today);
   const completedToday = tasks.filter((task) => task.completedAt && task.completedAt.startsWith(today)).length;
-  const finishedToday = todaysTasks.filter((task) => task.completed).length;
-  const progress = todaysTasks.length ? Math.round((finishedToday / todaysTasks.length) * 100) : 0;
+  const progressView = ["today", "week", "month"].includes(activeView) ? activeView : "today";
+  const progressTasks = tasks.filter((task) =>
+    (!activeProject || task.project === activeProject) &&
+    (task.completed
+      ? isInView(task, "completed") && isDueWithinRange(task, progressView)
+      : isInView(task, progressView, today)),
+  );
+  const finishedTasks = progressTasks.filter((task) => task.completed).length;
+  const progress = progressTasks.length ? Math.round((finishedTasks / progressTasks.length) * 100) : 0;
+  const periodLabel = { today: "Today's progress", week: "This week's progress", month: "This month's progress" }[progressView];
   elements.completedToday.textContent = String(completedToday);
+  elements.progressTitle.textContent = periodLabel;
   elements.progressLabel.textContent = `${progress}%`;
-  elements.progressCount.textContent = `${finishedToday} of ${todaysTasks.length} tasks`;
+  elements.progressCount.textContent = `${finishedTasks} of ${progressTasks.length} tasks`;
   elements.progressFill.style.width = `${progress}%`;
   elements.progressTrack.setAttribute("aria-valuenow", String(progress));
+  elements.progressTrack.setAttribute("aria-label", periodLabel);
+}
+
+function isDueWithinRange(task, view) {
+  if (!task.dueDate) return ["today", "week", "month"].includes(view);
+  const range = getDateRange(view);
+  return Boolean(range && task.dueDate >= range.start && task.dueDate <= range.end);
 }
 
 function render() {
@@ -235,8 +293,19 @@ function render() {
   renderList();
 }
 
-function openDialog() {
+function openDialog(taskId = null) {
   elements.form.reset();
+  document.querySelector("#task-title").setCustomValidity("");
+  const task = taskId ? tasks.find((item) => item.id === taskId) : null;
+  if (taskId && !task) return;
+  editTaskId = taskId;
+  elements.dialogTitle.textContent = task ? "Edit task" : "Add a task";
+  elements.dialogKicker.textContent = task ? "UPDATE YOUR TASK" : "MAKE A LITTLE PROGRESS";
+  elements.submitLabel.textContent = task ? "Save changes" : "Add task";
+  document.querySelector("#task-title").value = task?.title || "";
+  document.querySelector("#task-project").value = task?.project || projects[0];
+  document.querySelector("#task-priority").value = task?.priority || "medium";
+  document.querySelector("#task-due").value = task?.dueDate || (task ? "" : localDateString());
   elements.dialog.showModal();
   document.querySelector("#task-title").focus();
 }
@@ -245,10 +314,29 @@ function closeDialog() {
   elements.dialog.close();
 }
 
-function createTask(formData) {
+function saveTask(formData) {
+  const title = formData.get("title").trim();
+  if (editTaskId) {
+    tasks = tasks.map((task) => task.id === editTaskId
+      ? {
+        ...task,
+        title,
+        project: formData.get("project"),
+        priority: formData.get("priority"),
+        dueDate: formData.get("dueDate") || null,
+      }
+      : task);
+    saveTasks();
+    render();
+    closeDialog();
+    showToast("Changes saved.");
+    editTaskId = null;
+    return;
+  }
+
   const task = {
     id: globalThis.crypto?.randomUUID?.() || `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    title: formData.get("title").trim(),
+    title,
     project: formData.get("project"),
     priority: formData.get("priority"),
     dueDate: formData.get("dueDate") || null,
@@ -258,13 +346,14 @@ function createTask(formData) {
   };
   tasks.unshift(task);
   saveTasks();
-  activeView = "inbox";
+  activeView = "today";
   activeProject = null;
   searchTerm = "";
   elements.search.value = "";
   render();
   closeDialog();
-  showToast("Task added. One step closer.");
+  showToast("Task added.");
+  editTaskId = null;
 }
 
 function toggleTask(id) {
@@ -278,17 +367,44 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
-  tasks = tasks.filter((task) => task.id !== id);
+  const index = tasks.findIndex((task) => task.id === id);
+  if (index === -1) return;
+  pendingDeletion = { task: tasks[index], index };
+  tasks.splice(index, 1);
   saveTasks();
   render();
-  showToast("Task deleted.");
+  showUndoToast();
+}
+
+function undoDelete() {
+  if (!pendingDeletion) return;
+  const { task, index } = pendingDeletion;
+  tasks.splice(Math.min(index, tasks.length), 0, task);
+  pendingDeletion = null;
+  clearTimeout(toastTimer);
+  saveTasks();
+  render();
+  showToast("Task restored.");
 }
 
 function showToast(message) {
-  elements.toast.textContent = message;
+  pendingDeletion = null;
+  elements.toastMessage.textContent = message;
+  elements.undoDelete.hidden = true;
   elements.toast.classList.add("is-visible");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => elements.toast.classList.remove("is-visible"), 2400);
+}
+
+function showUndoToast() {
+  elements.toastMessage.textContent = "Task deleted.";
+  elements.undoDelete.hidden = false;
+  elements.toast.classList.add("is-visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    pendingDeletion = null;
+    elements.toast.classList.remove("is-visible");
+  }, 5000);
 }
 
 function setView(view) {
@@ -297,11 +413,14 @@ function setView(view) {
   render();
 }
 
-document.querySelectorAll("[data-open-dialog]").forEach((button) => button.addEventListener("click", openDialog));
+document.querySelectorAll("[data-open-dialog]").forEach((button) => button.addEventListener("click", () => openDialog()));
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", closeDialog));
 document.querySelectorAll("[data-view-link]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.viewLink)));
+document.querySelector("[data-home-link]").addEventListener("click", (event) => {
+  event.preventDefault();
+  setView("today");
+});
 document.querySelectorAll("[data-project-link]").forEach((button) => button.addEventListener("click", () => {
-  activeView = "inbox";
   activeProject = button.dataset.projectLink;
   render();
 }));
@@ -309,14 +428,26 @@ document.querySelectorAll("[data-project-link]").forEach((button) => button.addE
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!elements.form.reportValidity()) return;
-  createTask(new FormData(elements.form));
+  const titleInput = document.querySelector("#task-title");
+  if (!titleInput.value.trim()) {
+    titleInput.setCustomValidity("Please enter a task name.");
+    titleInput.reportValidity();
+    return;
+  }
+  saveTask(new FormData(elements.form));
 });
+document.querySelector("#task-title").addEventListener("input", (event) => event.target.setCustomValidity(""));
 
 elements.dialog.addEventListener("click", (event) => {
   if (event.target === elements.dialog) closeDialog();
 });
 
 elements.taskList.addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-edit-task]");
+  if (edit) {
+    openDialog(edit.dataset.editTask);
+    return;
+  }
   const toggle = event.target.closest("[data-toggle-task]");
   if (toggle) {
     toggleTask(toggle.dataset.toggleTask);
@@ -325,6 +456,7 @@ elements.taskList.addEventListener("click", (event) => {
   const remove = event.target.closest("[data-delete-task]");
   if (remove) deleteTask(remove.dataset.deleteTask);
 });
+elements.undoDelete.addEventListener("click", undoDelete);
 
 elements.search.addEventListener("input", () => {
   searchTerm = elements.search.value.trim().toLocaleLowerCase();
