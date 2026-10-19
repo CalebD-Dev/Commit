@@ -131,7 +131,7 @@
                 <label class="sort-select">
                   <span class="sr-only">Sort tasks</span>
                   <select id="sort-select">
-                    <option value="date">Due date</option>
+                    <option value="date">Commitment</option>
                     <option value="priority">Priority</option>
                     <option value="created">Date added</option>
                   </select>
@@ -183,9 +183,20 @@
             </select>
           </label>
         </div>
-        <label class="form-field due-field" for="task-due"><span class="field-label">Due date <span>(optional)</span></span>
-          <input id="task-due" name="dueDate" type="date" />
-        </label>
+        <fieldset class="commitment-field">
+          <legend class="field-label">Commitment</legend>
+          <p class="commitment-hint">Choose a day and, if helpful, a time in 15-minute increments.</p>
+          <div class="form-row commitment-row">
+            <label class="form-field" for="task-due"><span class="field-label">Day</span>
+              <input id="task-due" name="dueDate" type="date" />
+            </label>
+            <label class="form-field" for="task-time"><span class="field-label">Time <span>(optional)</span></span>
+              <select id="task-time" name="dueTime">
+                <option value="">Select a time</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
         <div class="dialog-actions">
           <button class="cancel-button" type="button" data-close-dialog>Cancel</button>
           <button class="submit-button" type="submit"><span aria-hidden="true">+</span><span id="submit-label">Add task</span></button>

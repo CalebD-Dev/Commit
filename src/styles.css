@@ -185,7 +185,11 @@ h1 { margin-bottom: 5px; font: 700 30px/1.2 var(--font-display); letter-spacing:
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 17px; }
 .form-field { display: block; }
 .form-field select { appearance: auto; }
-.due-field { margin-top: 17px; }
+.commitment-field { min-width: 0; margin: 17px 0 0; padding: 0; border: 0; }
+.commitment-field legend { padding: 0; }
+.commitment-hint { margin: -2px 0 0; color: var(--text-muted); font-size: 10px; }
+.commitment-row { margin-top: 11px; }
+.form-field input:disabled, .form-field select:disabled { cursor: not-allowed; opacity: .55; }
 .field-label > span { color: #a0a69f; font-weight: 400; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 25px; padding-top: 17px; border-top: 1px solid var(--line); }
 .cancel-button, .submit-button { min-height: 35px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; }
@@ -272,6 +276,7 @@ h1 { margin-bottom: 5px; font: 700 30px/1.2 var(--font-display); letter-spacing:
 :root[data-theme="dark"] .form-field input:focus { border-color: #7da680; outline-color: #38533a; }
 :root[data-theme="dark"] .field-label { color: #c2ccc3; }
 :root[data-theme="dark"] .field-label > span { color: #97a398; }
+:root[data-theme="dark"] .commitment-hint { color: var(--text-muted); }
 :root[data-theme="dark"] .undo-button { background: #314334; color: #d1e4d1; }
 :root[data-theme="dark"] .undo-button:hover { background: #3c5040; }
 :root[data-theme="dark"] .toast { border-color: #3e5342; background: #222b24; color: #c2d9c3; }

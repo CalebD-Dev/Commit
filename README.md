@@ -22,11 +22,11 @@ You can also serve the folder with any static file server, such as the VS Code L
 
 ## Features
 
-- Create tasks with a project, priority, and optional due date.
+- Create tasks with a project, priority, and a commitment day with an optional time in 15-minute increments.
 - Edit tasks, mark them complete, restore them, or undo an accidental deletion.
 - Start with Today, or browse this week (Monday through Sunday), this month, upcoming tasks, completed tasks, or a project.
-- Tasks without a due date remain visible in Today, This week, and This month.
-- Search task titles and sort by due date, priority, or date added.
+- Tasks without a commitment remain visible in Today, This week, and This month.
+- Search task titles and sort by commitment, priority, or date added.
 - Track today's completion progress and completed-task count.
 - Switch between softened light and dark themes; the display preference is saved in this browser.
 - Use `N` to add a task and `/` to focus search.

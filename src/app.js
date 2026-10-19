@@ -60,6 +60,8 @@ function isTask(value) {
     typeof value.completed === "boolean" &&
     typeof value.createdAt === "string" &&
     (value.dueDate === null || typeof value.dueDate === "string") &&
+    (value.dueTime === undefined || value.dueTime === null ||
+      (typeof value.dueTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value.dueTime))) &&
     (value.completedAt === null || typeof value.completedAt === "string");
 }
 
@@ -205,15 +207,40 @@ function compareDueDates(a, b) {
   if (!a.dueDate && !b.dueDate) return 0;
   if (!a.dueDate) return 1;
   if (!b.dueDate) return -1;
-  return a.dueDate.localeCompare(b.dueDate);
+  return a.dueDate.localeCompare(b.dueDate) ||
+    (a.dueTime || "99:99").localeCompare(b.dueTime || "99:99");
+}
+
+function formatTime(timeString) {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" })
+    .format(new Date(2000, 0, 1, hours, minutes));
+}
+
+function populateTimeOptions(select, selectedTime = "") {
+  select.replaceChildren(new Option("Select a time", ""));
+  for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+    const value = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    select.add(new Option(formatTime(value), value));
+  }
+
+  if (selectedTime && !Array.from(select.options).some((option) => option.value === selectedTime)) {
+    const customOption = new Option(formatTime(selectedTime), selectedTime);
+    const nextOption = Array.from(select.options).find((option) => option.value > selectedTime);
+    select.insertBefore(customOption, nextOption || null);
+  }
+
+  select.value = selectedTime;
 }
 
 function getDueLabel(task) {
   if (!task.dueDate) return "";
   const today = localDateString();
-  if (task.dueDate === today) return "Today";
-  if (task.dueDate < today && !task.completed) return "Overdue · " + formatDate(task.dueDate);
-  return formatDate(task.dueDate);
+  let label = "Overdue · " + formatDate(task.dueDate);
+  if (task.dueDate === today) label = "Today";
+  else if (task.dueDate > today || task.completed) label = formatDate(task.dueDate);
+  if (task.dueTime) label += ` · ${formatTime(task.dueTime)}`;
+  return label;
 }
 
 function renderTask(task) {
@@ -246,10 +273,10 @@ function renderTask(task) {
 function emptyMessage() {
   if (searchTerm) return { icon: "⌕", title: "No matches found", text: "Try a different search, or clear your search to see all tasks." };
   if (activeView === "completed") return { icon: "✓", title: "Your next win is waiting", text: "Tasks you complete will find their way here. Start with one small thing." };
-  if (activeView === "today") return { icon: "☀", title: "A little breathing room", text: "Nothing due today. Enjoy the space, or add a task when you're ready." };
-  if (activeView === "week") return { icon: "▦", title: "Your week has room to breathe", text: "Tasks due this week and tasks without a due date will show up here." };
-  if (activeView === "month") return { icon: "▦", title: "A fresh month of possibilities", text: "Tasks due this month and tasks without a due date will show up here." };
-  if (activeView === "upcoming") return { icon: "↗", title: "Clear skies ahead", text: "Tasks with a future due date will show up here." };
+  if (activeView === "today") return { icon: "☀", title: "A little breathing room", text: "Nothing planned for today. Enjoy the space, or add a task when you're ready." };
+  if (activeView === "week") return { icon: "▦", title: "Your week has room to breathe", text: "Tasks committed to this week and tasks without a commitment will show up here." };
+  if (activeView === "month") return { icon: "▦", title: "A fresh month of possibilities", text: "Tasks committed to this month and tasks without a commitment will show up here." };
+  if (activeView === "upcoming") return { icon: "↗", title: "Clear skies ahead", text: "Tasks with a future commitment will show up here." };
   return { icon: "✳", title: "Make room for what matters", text: "Your list is a fresh start. Add a task and take the first small step." };
 }
 
@@ -339,6 +366,8 @@ function openDialog(taskId = null) {
   document.querySelector("#task-project").value = task?.project || projects[0];
   document.querySelector("#task-priority").value = task?.priority || "medium";
   document.querySelector("#task-due").value = task?.dueDate || (task ? "" : localDateString());
+  populateTimeOptions(document.querySelector("#task-time"), task?.dueTime || "");
+  syncCommitmentTime();
   elements.dialog.showModal();
   document.querySelector("#task-title").focus();
 }
@@ -357,6 +386,7 @@ function saveTask(formData) {
         project: formData.get("project"),
         priority: formData.get("priority"),
         dueDate: formData.get("dueDate") || null,
+        dueTime: formData.get("dueDate") ? (formData.get("dueTime") || null) : null,
       }
       : task);
     saveTasks();
@@ -373,6 +403,7 @@ function saveTask(formData) {
     project: formData.get("project"),
     priority: formData.get("priority"),
     dueDate: formData.get("dueDate") || null,
+    dueTime: formData.get("dueDate") ? (formData.get("dueTime") || null) : null,
     completed: false,
     createdAt: new Date().toISOString(),
     completedAt: null,
@@ -470,6 +501,15 @@ elements.form.addEventListener("submit", (event) => {
   saveTask(new FormData(elements.form));
 });
 document.querySelector("#task-title").addEventListener("input", (event) => event.target.setCustomValidity(""));
+document.querySelector("#task-due").addEventListener("input", syncCommitmentTime);
+document.querySelector("#task-due").addEventListener("change", syncCommitmentTime);
+
+function syncCommitmentTime() {
+  const dateInput = document.querySelector("#task-due");
+  const timeInput = document.querySelector("#task-time");
+  timeInput.disabled = !dateInput.value;
+  if (timeInput.disabled) timeInput.selectedIndex = 0;
+}
 
 elements.dialog.addEventListener("click", (event) => {
   if (event.target === elements.dialog) closeDialog();
