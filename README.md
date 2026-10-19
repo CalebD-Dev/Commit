@@ -11,9 +11,6 @@ Commit/
 ├── src/
 │   ├── app.js
 │   └── styles.css
-└── tests/
-    ├── index.html
-    └── tests.js
 ```
 
 ## Run it locally
@@ -31,13 +28,10 @@ You can also serve the folder with any static file server, such as the VS Code L
 - Tasks without a due date remain visible in Today, This week, and This month.
 - Search task titles and sort by due date, priority, or date added.
 - Track today's completion progress and completed-task count.
+- Switch between softened light and dark themes; the display preference is saved in this browser.
 - Use `N` to add a task and `/` to focus search.
 - Responsive layout, keyboard-friendly controls, and reduced-motion support.
 - Tasks stay in this browser on this device using `localStorage`; nothing is sent to a server.
-
-## Run the browser tests
-
-Start the project with a local static server (for example, VS Code Live Server), then open `tests/index.html`. The test page exercises the app in an isolated frame and restores the browser's existing task data when finished. The same page is available under the `tests/` path of the GitHub Pages project URL.
 
 ## Data and privacy
 

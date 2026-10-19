@@ -1,4 +1,5 @@
 const STORAGE_KEY = "commit.tasks.v1";
+const THEME_KEY = "commit.theme.v1";
 const projects = ["Work", "Personal", "Learning", "Health"];
 const projectClasses = {
   Work: "dot-work",
@@ -36,6 +37,7 @@ const elements = {
   storageMessage: document.querySelector("#storage-message"),
   taskList: document.querySelector("#task-list"),
   taskTotal: document.querySelector("#task-total"),
+  themeToggle: document.querySelector("#theme-toggle"),
   toast: document.querySelector("#toast"),
   toastMessage: document.querySelector("#toast-message"),
   undoDelete: document.querySelector("#undo-delete"),
@@ -93,6 +95,37 @@ function showStorageMessage(message) {
   elements.storageMessage.textContent = message;
   elements.storageMessage.hidden = false;
 }
+
+function loadTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+  } catch (error) {
+    console.error("Commit could not load the saved theme.", error);
+    showStorageMessage("Your display preference couldn't be read from this browser.");
+    return "light";
+  }
+}
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = theme;
+  elements.themeToggle.setAttribute("aria-pressed", String(isDark));
+  elements.themeToggle.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} mode`);
+  elements.themeToggle.title = `Switch to ${isDark ? "light" : "dark"} mode`;
+  document.querySelector('meta[name="theme-color"]').content = isDark ? "#202720" : "#e9ece8";
+}
+
+function setTheme(theme) {
+  applyTheme(theme);
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch (error) {
+    console.error("Commit could not save the display preference.", error);
+    showStorageMessage("Your theme changed, but this browser couldn't save the preference.");
+  }
+}
+
+applyTheme(loadTheme());
 
 function localDateString(date = new Date()) {
   const year = date.getFullYear();
@@ -457,6 +490,9 @@ elements.taskList.addEventListener("click", (event) => {
   if (remove) deleteTask(remove.dataset.deleteTask);
 });
 elements.undoDelete.addEventListener("click", undoDelete);
+elements.themeToggle.addEventListener("click", () => {
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
 
 elements.search.addEventListener("input", () => {
   searchTerm = elements.search.value.trim().toLocaleLowerCase();

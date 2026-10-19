@@ -7,7 +7,7 @@
       name="description"
       content="Commit is a calm, local-first task manager that helps you make progress one task at a time."
     />
-    <meta name="theme-color" content="#f1f3f0" />
+    <meta name="theme-color" content="#e5e8e4" />
     <title>Commit — Make room for what matters</title>
     <link rel="stylesheet" href="src/styles.css" />
     <script src="src/app.js" defer></script>
@@ -100,6 +100,10 @@
               <input id="search-input" type="search" placeholder="Search tasks..." aria-label="Search tasks" />
               <kbd>/</kbd>
             </label>
+            <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+              <svg class="theme-icon theme-icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.3 12.8A7 7 0 0 1 7.2 3.7a7 7 0 1 0 9.1 9.1Z" /></svg>
+              <svg class="theme-icon theme-icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2" /><path d="M10 2.5v1.4m0 12.2v1.4m7.5-7.5h-1.4M3.9 10H2.5m12.8-5.3-1 1m-8.6 8.6-1 1m11.6 0-1-1m-8.6-8.6-1-1" /></svg>
+            </button>
             <button class="top-add" type="button" data-open-dialog><span aria-hidden="true">+</span> Add task</button>
           </div>
         </header>
